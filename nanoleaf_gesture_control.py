@@ -2,95 +2,81 @@ import cv2
 import mediapipe as mp
 import requests
 import time
+import math
 
-# 1. Nanoleaf setup
-NANO_IP    = "192.168.1.42"                # ← replace with your Nanoleaf’s IP
-AUTH_TOKEN = "YOUR_AUTH_TOKEN_HERE"        # ← get this from your Nanoleaf’s developer settings
-API_BASE   = "http://{NANO_IP}:16021/api/v1/{AUTH_TOKEN}/state"
+# 1. Nanoleaf setup (updated token)
+NANO_IP    = "192.168.2.34"
+AUTH_TOKEN = "9N4HGFpkLsa1jkBfbWxTdUk5FAzETGyP"
+API_BASE   = f"http://{NANO_IP}:16021/api/v1/{AUTH_TOKEN}/state"
 
-# 2. Helper functions
+# 2. Helper
 def set_brightness(bri: int):
-    """Clamp 0–100 and send to Nanoleaf."""
     bri = max(0, min(100, bri))
-    payload = {"brightness": bri}
-    requests.put(API_BASE, json=payload)
+    payload = {"brightness": {"value": bri}}
+    resp = requests.put(API_BASE, json=payload)
+    resp.raise_for_status()
 
-def set_hue(hue: int):
-    """Clamp 0–360 and send hue (degree) to Nanoleaf."""
-    hue = hue % 360
-    payload = {"hue": hue}
-    requests.put(API_BASE, json=payload)
+# 3. Hand tracking init
+mp_hands = mp.solutions.hands
+hands    = mp_hands.Hands(min_detection_confidence=0.7,
+                         min_tracking_confidence=0.7)
+mp_draw  = mp.solutions.drawing_utils
+cap      = cv2.VideoCapture(0)
 
-# 3. Hand‐tracking init
-mp_hands   = mp.solutions.hands
-hands      = mp_hands.Hands(min_detection_confidence=0.7,
-                           min_tracking_confidence=0.7)
-mp_draw    = mp.solutions.drawing_utils
-cap        = cv2.VideoCapture(0)
-
-# 4. State variables
-prev_center = None
-brightness  = 50    # start at mid‐level
-hue         = 180   # start at cyan
-set_brightness(brightness)
-set_hue(hue)
+# 4. Brightness state
 last_update = time.time()
+brightness  = 50
+set_brightness(brightness)
 
-# 5. Main loop
+# 5. Mapping parameters
+MAX_PINCH_DIST = 200  # pixels → adjust after testing
+
 while True:
-    ret, frame = cap.read()
+    ret, img = cap.read()
     if not ret:
         break
 
-    # flip & convert for MediaPipe
-    frame_rgb = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
-    results   = hands.process(frame_rgb)
+    img = cv2.flip(img, 1)
+    h, w, _ = img.shape
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    res     = hands.process(img_rgb)
 
-    if results.multi_hand_landmarks:
-        # take first hand
-        lm = results.multi_hand_landmarks[0]
-        # draw for debugging
-        mp_draw.draw_landmarks(frame, lm, mp_hands.HAND_CONNECTIONS)
+    thumb = index = None
 
-        # compute hand centroid as average of landmarks
-        pts = [(p.x * frame.shape[1], p.y * frame.shape[0]) for p in lm.landmark]
-        cx = sum(x for x, y in pts) / len(pts)
-        cy = sum(y for x, y in pts) / len(pts)
-        center = (cx, cy)
+    if res.multi_hand_landmarks:
+        lm = res.multi_hand_landmarks[0].landmark
 
-        if prev_center:
-            dx = center[0] - prev_center[0]
-            dy = center[1] - prev_center[1]
-            mag = (dx**2 + dy**2)**0.5
+        # get pixel coords for tip of thumb (4) and index (8)
+        thumb = (int(lm[4].x * w), int(lm[4].y * h))
+        index = (int(lm[8].x * w), int(lm[8].y * h))
 
-            # only update every 0.5s to avoid flooding the API
-            if mag > 40 and time.time() - last_update > 0.5:
-                last_update = time.time()
+        # draw them
+        cv2.circle(img, thumb, 8, (0,255,0), cv2.FILLED)
+        cv2.circle(img, index, 8, (0,255,0), cv2.FILLED)
+        cv2.line(img, thumb, index, (0,255,0), 2)
 
-                # vertical swipe changes brightness
-                if abs(dy) > abs(dx):
-                    step = int((abs(dy) / mag) * 10)  # proportional step
-                    if dy < 0:
-                        brightness += step
-                    else:
-                        brightness -= step
-                    set_brightness(brightness)
-                    print(f"Brightness → {brightness}")
+        # compute distance
+        dist = math.hypot(index[0] - thumb[0], index[1] - thumb[1])
 
-                # horizontal swipe changes hue
-                else:
-                    step = int((abs(dx) / mag) * 30)
-                    if dx > 0:
-                        hue += step
-                    else:
-                        hue -= step
-                    set_hue(hue)
-                    print(f"Hue → {hue % 360}")
+        # map to 0–100
+        bri = int((dist / MAX_PINCH_DIST) * 100)
+        bri = max(0, min(100, bri))
 
-        prev_center = center
+        # rate‐limit to every 0.2 s
+        now = time.time()
+        if now - last_update > 0.2:
+            last_update = now
+            brightness = bri
+            set_brightness(brightness)
 
-    cv2.imshow("Hand Gesture Control", frame)
-    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
+        # show value
+        cv2.putText(img, f"{brightness}%", 
+                    (thumb[0], thumb[1]-20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+
+    # display
+    cv2.imshow("Pinch to Brightness", img)
+    if cv2.waitKey(1) & 0xFF == 27:
         break
 
 cap.release()
