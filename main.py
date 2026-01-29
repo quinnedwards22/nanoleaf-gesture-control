@@ -34,8 +34,12 @@ while True:
     set_brightness(bri)
 
     cv2.imshow("Live Gesture Control", vis)
-    if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
-        break
+    cv2.waitKey(1)
+
+    # if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
+    #     break
+
+    time.sleep(0.01)  # small delay to reduce CPU usage
 
 cap.release()
 cv2.destroyAllWindows()
