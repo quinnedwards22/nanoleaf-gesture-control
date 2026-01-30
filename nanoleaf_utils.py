@@ -13,6 +13,12 @@ def set_brightness(bri: int):
     resp = requests.put(API_BASE, json=payload)
     resp.raise_for_status()
 
+def get_brightness():
+    """Get current brightness from Nanoleaf."""
+    resp = requests.get(API_BASE)
+    resp.raise_for_status()
+    return resp.json()["brightness"]["value"]
+
 def set_hue(hue: int):
     """Clamp to 0–360 and send hue (degrees) to Nanoleaf."""
     hue = hue % 360
