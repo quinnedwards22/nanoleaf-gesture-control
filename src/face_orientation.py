@@ -11,9 +11,9 @@ import numpy as np
 import mediapipe as mp
 
 from pathlib import Path
+from . import config
 
-HERE = Path(__file__).resolve().parent
-MODEL_PATH = (HERE / "models" / "face_landmarker.task").resolve()
+MODEL_PATH = config.MODEL_DIR / "face_landmarker.task"
 
 # ==========
 # Config

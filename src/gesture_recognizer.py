@@ -1,16 +1,15 @@
 import cv2
 import mediapipe as mp
-import os
 import time
-from gesture import Hand
+from . import config
+from .gesture import Hand
 
 BaseOptions = mp.tasks.BaseOptions
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(HERE, "gesture_recognizer.task")
+model_path = str(config.MODEL_DIR / "gesture_recognizer.task")
 
 # Create a gesture recognizer instance with the video mode:
 try:

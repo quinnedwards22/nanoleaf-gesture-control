@@ -5,6 +5,10 @@ __pycache__/
 # Virtual env
 venv/
 env/
+.venv/
+
+# Environment / secrets
+.env
 
 # MacOS
 .DS_Store

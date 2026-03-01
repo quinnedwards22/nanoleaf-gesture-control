@@ -3,8 +3,8 @@ import cv2
 import mediapipe as mp
 import math
 import time
-import os
 import enum
+from . import config
 
 class Hand(enum.Enum):
     LEFT = 1
@@ -21,8 +21,7 @@ HandLandmarkerResult = mp.tasks.vision.HandLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(HERE, "hand_landmarker.task")
+model_path = str(config.MODEL_DIR / "hand_landmarker.task")
 
 options = HandLandmarkerOptions(
     base_options=BaseOptions(model_asset_path=model_path),

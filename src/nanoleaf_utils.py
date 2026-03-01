@@ -1,10 +1,8 @@
 # nanoleaf_utils.py
 import requests
+from . import config
 
-# 1. Nanoleaf setup
-NANO_IP    = "192.168.2.34"
-AUTH_TOKEN = "9N4HGFpkLsa1jkBfbWxTdUk5FAzETGyP"
-API_BASE   = f"http://{NANO_IP}:16021/api/v1/{AUTH_TOKEN}/state"
+API_BASE = f"http://{config.NANO_IP}:16021/api/v1/{config.AUTH_TOKEN}/state"
 
 def set_brightness(bri: int):
     """Clamp to 0–100 and send to Nanoleaf."""

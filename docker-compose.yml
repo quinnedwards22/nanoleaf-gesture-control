@@ -1,0 +1,13 @@
+services:
+  gesture-control:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix  # X11 display (Linux / WSLg)
+    devices:
+      - /dev/video0:/dev/video0         # Webcam passthrough (Linux)
+    network_mode: host                  # Required to reach Nanoleaf on LAN
+    restart: unless-stopped

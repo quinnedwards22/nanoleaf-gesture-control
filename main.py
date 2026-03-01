@@ -3,10 +3,10 @@ import cv2
 import time
 import os
 import importlib
-import gesture_recognizer
-from nanoleaf_utils import get_brightness, set_brightness
-import face_orientation
-from gesture import Hand
+from src import gesture_recognizer
+from src.nanoleaf_utils import get_brightness, set_brightness
+from src import face_orientation
+from src.gesture import Hand
 
 
 # initialize camera
@@ -14,9 +14,9 @@ cap = cv2.VideoCapture(0)
 if not cap.isOpened():
     raise RuntimeError("Cannot open camera")
 
-# load gesture module
-gesture = importlib.import_module("gesture")
-last_mtime = os.path.getmtime("gesture.py")
+# load gesture module (supports hot-reload on file save)
+gesture = importlib.import_module("src.gesture")
+last_mtime = os.path.getmtime("src/gesture.py")
 
 
 
@@ -25,12 +25,12 @@ while True:
     if not ret:
         break
 
-    # hot-reload gesture.py if changed
-    mtime = os.path.getmtime("gesture.py")
+    # hot-reload src/gesture.py if changed
+    mtime = os.path.getmtime("src/gesture.py")
     if mtime != last_mtime:
         gesture = importlib.reload(gesture)
         last_mtime = mtime
-        print("🔄 gesture.py reloaded")
+        print("gesture.py reloaded")
 
     # process frame → get target brightness + annotated frame
     bri, vis = gesture.process_frame(frame)
